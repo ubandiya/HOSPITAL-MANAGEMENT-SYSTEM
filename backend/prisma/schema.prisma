@@ -1,0 +1,514 @@
+// Prisma Schema for Hospital Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & STAFF MANAGEMENT
+// ============================================
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  permissions Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  roleId       Int       @map("role_id")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  role      Role        @relation(fields: [roleId], references: [id])
+  staff     Staff?
+  auditLogs AuditLog[]
+  invoices  Invoice[]   @relation("CreatedBy")
+
+  @@map("users")
+}
+
+model Department {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(100)
+  description   String?  @db.Text
+  headDoctorId  Int?     @map("head_doctor_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  staff        Staff[]
+  appointments Appointment[]
+
+  @@map("departments")
+}
+
+model Staff {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @unique @map("user_id")
+  firstName        String    @map("first_name") @db.VarChar(100)
+  lastName         String    @map("last_name") @db.VarChar(100)
+  gender           String?   @db.VarChar(10)
+  dateOfBirth      DateTime? @map("date_of_birth") @db.Date
+  phone            String?   @db.VarChar(20)
+  emergencyContact String?   @map("emergency_contact") @db.VarChar(20)
+  address          String?   @db.Text
+  departmentId     Int?      @map("department_id")
+  specialization   String?   @db.VarChar(100)
+  licenseNumber    String?   @map("license_number") @db.VarChar(50)
+  qualification    String?   @db.VarChar(255)
+  joiningDate      DateTime? @map("joining_date") @db.Date
+  employmentType   String?   @map("employment_type") @db.VarChar(50)
+  status           String    @default("active") @db.VarChar(20)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department           Department?            @relation(fields: [departmentId], references: [id])
+  appointments         Appointment[]
+  medicalRecords       MedicalRecord[]
+  prescriptions        Prescription[]
+  labOrders            LabOrder[]
+  labResults           LabResult[]            @relation("TestedBy")
+  approvedLabResults   LabResult[]            @relation("ApprovedBy")
+  pharmacyTransactions PharmacyTransaction[]
+  payments             Payment[]
+
+  @@map("staff")
+}
+
+// ============================================
+// PATIENT MANAGEMENT
+// ============================================
+
+model Patient {
+  id                     Int      @id @default(autoincrement())
+  patientId              String   @unique @map("patient_id") @db.VarChar(50)
+  firstName              String   @map("first_name") @db.VarChar(100)
+  lastName               String   @map("last_name") @db.VarChar(100)
+  dateOfBirth            DateTime @map("date_of_birth") @db.Date
+  gender                 String   @db.VarChar(10)
+  bloodGroup             String?  @map("blood_group") @db.VarChar(5)
+  phone                  String?  @db.VarChar(20)
+  email                  String?  @db.VarChar(255)
+  emergencyContactName   String?  @map("emergency_contact_name") @db.VarChar(100)
+  emergencyContactPhone  String?  @map("emergency_contact_phone") @db.VarChar(20)
+  address                String?  @db.Text
+  city                   String?  @db.VarChar(100)
+  state                  String?  @db.VarChar(100)
+  zipCode                String?  @map("zip_code") @db.VarChar(10)
+  insuranceProvider      String?  @map("insurance_provider") @db.VarChar(100)
+  insurancePolicyNumber  String?  @map("insurance_policy_number") @db.VarChar(100)
+  allergies              String?  @db.Text
+  chronicConditions      String?  @map("chronic_conditions") @db.Text
+  registrationDate       DateTime @default(now()) @map("registration_date") @db.Date
+  isActive               Boolean  @default(true) @map("is_active")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  appointments         Appointment[]
+  medicalRecords       MedicalRecord[]
+  prescriptions        Prescription[]
+  labOrders            LabOrder[]
+  invoices             Invoice[]
+  admissions           Admission[]
+  pharmacyTransactions PharmacyTransaction[]
+
+  @@index([patientId])
+  @@index([phone])
+  @@map("patients")
+}
+
+// ============================================
+// APPOINTMENT MANAGEMENT
+// ============================================
+
+model Appointment {
+  id                Int       @id @default(autoincrement())
+  appointmentNumber String    @unique @map("appointment_number") @db.VarChar(50)
+  patientId         Int       @map("patient_id")
+  doctorId          Int       @map("doctor_id")
+  departmentId      Int?      @map("department_id")
+  appointmentDate   DateTime  @map("appointment_date") @db.Date
+  appointmentTime   DateTime  @map("appointment_time") @db.Time
+  durationMinutes   Int       @default(30) @map("duration_minutes")
+  appointmentType   String?   @map("appointment_type") @db.VarChar(50)
+  status            String    @default("scheduled") @db.VarChar(20)
+  reason            String?   @db.Text
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  patient        Patient          @relation(fields: [patientId], references: [id])
+  doctor         Staff            @relation(fields: [doctorId], references: [id])
+  department     Department?      @relation(fields: [departmentId], references: [id])
+  medicalRecords MedicalRecord[]
+
+  @@index([appointmentDate])
+  @@index([doctorId])
+  @@index([patientId])
+  @@map("appointments")
+}
+
+// ============================================
+// MEDICAL RECORDS (EMR)
+// ============================================
+
+model MedicalRecord {
+  id             Int       @id @default(autoincrement())
+  patientId      Int       @map("patient_id")
+  appointmentId  Int?      @map("appointment_id")
+  doctorId       Int       @map("doctor_id")
+  visitDate      DateTime  @default(now()) @map("visit_date")
+  chiefComplaint String?   @map("chief_complaint") @db.Text
+  symptoms       String?   @db.Text
+  diagnosis      String?   @db.Text
+  treatmentPlan  String?   @map("treatment_plan") @db.Text
+  vitalSigns     Json?     @map("vital_signs")
+  notes          String?   @db.Text
+  followUpDate   DateTime? @map("follow_up_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
+  doctor        Staff          @relation(fields: [doctorId], references: [id])
+  prescriptions Prescription[]
+  labOrders     LabOrder[]
+
+  @@index([patientId])
+  @@map("medical_records")
+}
+
+model Prescription {
+  id              Int      @id @default(autoincrement())
+  medicalRecordId Int?     @map("medical_record_id")
+  patientId       Int      @map("patient_id")
+  doctorId        Int      @map("doctor_id")
+  prescriptionDate DateTime @default(now()) @map("prescription_date") @db.Date
+  status          String   @default("active") @db.VarChar(20)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  medicalRecord        MedicalRecord?         @relation(fields: [medicalRecordId], references: [id])
+  patient              Patient                @relation(fields: [patientId], references: [id])
+  doctor               Staff                  @relation(fields: [doctorId], references: [id])
+  prescriptionItems    PrescriptionItem[]
+  pharmacyTransactions PharmacyTransaction[]
+
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             Int      @id @default(autoincrement())
+  prescriptionId Int      @map("prescription_id")
+  medicationId   Int      @map("medication_id")
+  dosage         String?  @db.VarChar(50)
+  frequency      String?  @db.VarChar(50)
+  duration       String?  @db.VarChar(50)
+  quantity       Int?
+  instructions   String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication   Medication   @relation(fields: [medicationId], references: [id])
+
+  @@map("prescription_items")
+}
+
+// ============================================
+// PHARMACY MANAGEMENT
+// ============================================
+
+model Medication {
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(255)
+  genericName        String?   @map("generic_name") @db.VarChar(255)
+  manufacturer       String?   @db.VarChar(255)
+  category           String?   @db.VarChar(100)
+  dosageForm         String?   @map("dosage_form") @db.VarChar(50)
+  strength           String?   @db.VarChar(50)
+  unitPrice          Decimal?  @map("unit_price") @db.Decimal(10, 2)
+  stockQuantity      Int       @default(0) @map("stock_quantity")
+  reorderLevel       Int       @default(10) @map("reorder_level")
+  expiryDate         DateTime? @map("expiry_date") @db.Date
+  batchNumber        String?   @map("batch_number") @db.VarChar(50)
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  prescriptionItems PrescriptionItem[]
+
+  @@map("medications")
+}
+
+model PharmacyTransaction {
+  id              Int      @id @default(autoincrement())
+  prescriptionId  Int?     @map("prescription_id")
+  patientId       Int      @map("patient_id")
+  pharmacistId    Int      @map("pharmacist_id")
+  transactionDate DateTime @default(now()) @map("transaction_date")
+  totalAmount     Decimal  @map("total_amount") @db.Decimal(10, 2)
+  paymentStatus   String   @map("payment_status") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  prescription Prescription? @relation(fields: [prescriptionId], references: [id])
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  pharmacist   Staff         @relation(fields: [pharmacistId], references: [id])
+
+  @@map("pharmacy_transactions")
+}
+
+// ============================================
+// LABORATORY MANAGEMENT
+// ============================================
+
+model LabTest {
+  id          Int      @id @default(autoincrement())
+  testName    String   @map("test_name") @db.VarChar(255)
+  testCode    String?  @unique @map("test_code") @db.VarChar(50)
+  category    String?  @db.VarChar(100)
+  description String?  @db.Text
+  normalRange String?  @map("normal_range") @db.VarChar(100)
+  unit        String?  @db.VarChar(50)
+  price       Decimal? @db.Decimal(10, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  labOrderItems LabOrderItem[]
+
+  @@map("lab_tests")
+}
+
+model LabOrder {
+  id              Int       @id @default(autoincrement())
+  orderNumber     String    @unique @map("order_number") @db.VarChar(50)
+  patientId       Int       @map("patient_id")
+  doctorId        Int       @map("doctor_id")
+  medicalRecordId Int?      @map("medical_record_id")
+  orderDate       DateTime  @default(now()) @map("order_date")
+  status          String    @default("pending") @db.VarChar(20)
+  priority        String    @default("normal") @db.VarChar(20)
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  patient       Patient         @relation(fields: [patientId], references: [id])
+  doctor        Staff           @relation(fields: [doctorId], references: [id])
+  medicalRecord MedicalRecord?  @relation(fields: [medicalRecordId], references: [id])
+  labOrderItems LabOrderItem[]
+
+  @@index([patientId])
+  @@map("lab_orders")
+}
+
+model LabOrderItem {
+  id         Int      @id @default(autoincrement())
+  labOrderId Int      @map("lab_order_id")
+  labTestId  Int      @map("lab_test_id")
+  status     String   @default("pending") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  labOrder   LabOrder     @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  labTest    LabTest      @relation(fields: [labTestId], references: [id])
+  labResults LabResult[]
+
+  @@map("lab_order_items")
+}
+
+model LabResult {
+  id             Int       @id @default(autoincrement())
+  labOrderItemId Int       @map("lab_order_item_id")
+  resultValue    String?   @map("result_value") @db.VarChar(255)
+  resultUnit     String?   @map("result_unit") @db.VarChar(50)
+  normalRange    String?   @map("normal_range") @db.VarChar(100)
+  isAbnormal     Boolean   @default(false) @map("is_abnormal")
+  notes          String?   @db.Text
+  testedById     Int?      @map("tested_by")
+  approvedById   Int?      @map("approved_by")
+  resultDate     DateTime  @default(now()) @map("result_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  labOrderItem LabOrderItem @relation(fields: [labOrderItemId], references: [id])
+  testedBy     Staff?       @relation("TestedBy", fields: [testedById], references: [id])
+  approvedBy   Staff?       @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  @@map("lab_results")
+}
+
+// ============================================
+// BILLING & INVOICING
+// ============================================
+
+model Invoice {
+  id             Int      @id @default(autoincrement())
+  invoiceNumber  String   @unique @map("invoice_number") @db.VarChar(50)
+  patientId      Int      @map("patient_id")
+  appointmentId  Int?     @map("appointment_id")
+  invoiceDate    DateTime @default(now()) @map("invoice_date") @db.Date
+  dueDate        DateTime? @map("due_date") @db.Date
+  subtotal       Decimal? @db.Decimal(10, 2)
+  taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  discountAmount Decimal  @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  totalAmount    Decimal  @map("total_amount") @db.Decimal(10, 2)
+  paidAmount     Decimal  @default(0) @map("paid_amount") @db.Decimal(10, 2)
+  status         String   @default("pending") @db.VarChar(20)
+  paymentMethod  String?  @map("payment_method") @db.VarChar(50)
+  notes          String?  @db.Text
+  createdBy      Int?     @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  patient      Patient        @relation(fields: [patientId], references: [id])
+  creator      User?          @relation("CreatedBy", fields: [createdBy], references: [id])
+  invoiceItems InvoiceItem[]
+  payments     Payment[]
+
+  @@index([patientId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          Int      @id @default(autoincrement())
+  invoiceId   Int      @map("invoice_id")
+  itemType    String   @map("item_type") @db.VarChar(50)
+  itemId      Int?     @map("item_id")
+  description String?  @db.VarChar(255)
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice  Decimal  @map("total_price") @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  invoiceId     Int      @map("invoice_id")
+  paymentDate   DateTime @default(now()) @map("payment_date")
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentMethod String?  @map("payment_method") @db.VarChar(50)
+  transactionId String?  @map("transaction_id") @db.VarChar(100)
+  receivedBy    Int?     @map("received_by")
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  receivedByStaff Staff? @relation(fields: [receivedBy], references: [id])
+
+  @@map("payments")
+}
+
+// ============================================
+// BED & ROOM MANAGEMENT
+// ============================================
+
+model Ward {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  wardType  String?  @map("ward_type") @db.VarChar(50)
+  floorNumber Int?   @map("floor_number")
+  capacity  Int?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  beds Bed[]
+
+  @@map("wards")
+}
+
+model Bed {
+  id          Int      @id @default(autoincrement())
+  bedNumber   String   @map("bed_number") @db.VarChar(20)
+  wardId      Int?     @map("ward_id")
+  bedType     String?  @map("bed_type") @db.VarChar(50)
+  status      String   @default("available") @db.VarChar(20)
+  dailyCharge Decimal? @map("daily_charge") @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ward       Ward?       @relation(fields: [wardId], references: [id])
+  admissions Admission[]
+
+  @@map("beds")
+}
+
+model Admission {
+  id               Int       @id @default(autoincrement())
+  admissionNumber  String    @unique @map("admission_number") @db.VarChar(50)
+  patientId        Int       @map("patient_id")
+  bedId            Int?      @map("bed_id")
+  doctorId         Int?      @map("doctor_id")
+  admissionDate    DateTime  @default(now()) @map("admission_date")
+  dischargeDate    DateTime? @map("discharge_date")
+  admissionType    String?   @map("admission_type") @db.VarChar(50)
+  reason           String?   @db.Text
+  dischargeSummary String?   @map("discharge_summary") @db.Text
+  status           String    @default("admitted") @db.VarChar(20)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  patient Patient @relation(fields: [patientId], references: [id])
+  bed     Bed?    @relation(fields: [bedId], references: [id])
+
+  @@map("admissions")
+}
+
+// ============================================
+// INVENTORY MANAGEMENT
+// ============================================
+
+model InventoryItem {
+  id              Int      @id @default(autoincrement())
+  itemName        String   @map("item_name") @db.VarChar(255)
+  itemCode        String?  @unique @map("item_code") @db.VarChar(50)
+  category        String?  @db.VarChar(100)
+  unitOfMeasure   String?  @map("unit_of_measure") @db.VarChar(50)
+  quantityInStock Int      @default(0) @map("quantity_in_stock")
+  reorderLevel    Int      @default(5) @map("reorder_level")
+  unitCost        Decimal? @map("unit_cost") @db.Decimal(10, 2)
+  supplier        String?  @db.VarChar(255)
+  location        String?  @db.VarChar(100)
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("inventory_items")
+}
+
+// ============================================
+// AUDIT & LOGGING
+// ============================================
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  action     String   @db.VarChar(100)
+  entityType String?  @map("entity_type") @db.VarChar(100)
+  entityId   Int?     @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
