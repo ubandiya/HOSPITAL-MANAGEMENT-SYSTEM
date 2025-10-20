@@ -6,6 +6,7 @@ import { config } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import logger from './utils/logger';
 import authRoutes from './routes/authRoutes';
+import patientRoutes from './routes/patientRoutes';
 
 const app: Application = express();
 
@@ -45,8 +46,8 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use(`/api/${config.apiVersion}/auth`, authRoutes);
+app.use(`/api/${config.apiVersion}/patients`, patientRoutes);
 // Additional routes will be added here
-// app.use(`/api/${config.apiVersion}/patients`, patientRoutes);
 // etc.
 
 // 404 handler

@@ -8,6 +8,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Patients from './pages/Patients';
+import PatientForm from './pages/PatientForm';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -87,13 +89,125 @@ function App() {
                 }
               />
 
-              {/* Placeholder routes for future modules */}
+              {/* Patient Management Routes */}
               <Route
                 path="/patients"
                 element={
                   <ProtectedRoute>
                     <AppLayout>
-                      <div>Patients Module - Coming Soon</div>
+                      <Patients />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/new"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <PatientForm />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <PatientForm />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/:id"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Patient Detail View - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Placeholder routes for other modules */}
+              <Route
+                path="/appointments"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Appointments Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/medical-records"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Medical Records Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pharmacy"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Pharmacy Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/laboratory"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Laboratory Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Billing Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/beds"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Bed Management Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Inventory Module - Coming Soon</div>
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <div>Reports Module - Coming Soon</div>
                     </AppLayout>
                   </ProtectedRoute>
                 }
